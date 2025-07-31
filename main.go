@@ -29,7 +29,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("Could not open tpm persisten storage: %s", err)
 	}
-	credsManager := creds.New(secrets_pass, tpm)
+	credsManager, err := creds.New(secrets_pass, tpm)
+	if err != nil {
+		log.Fatalf("Cannot create credential manager: %s", err)
+	}
 	if cmder, ok := credsManager.(commander); ok {
 		rootCtl := cmder.CobraCommand()
 		if err := rootCtl.ExecuteContext(ctx); err != nil {

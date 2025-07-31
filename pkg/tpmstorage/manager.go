@@ -1,3 +1,5 @@
+//go:build linux
+
 package tpmstorage
 
 import (
@@ -14,17 +16,20 @@ import (
 
 func New(ctx context.Context, options ...Option) (creds.Manager, error) {
 
-	m := &tpmStorage{
+	ts := &tpmStorage{
 		storagePath:   "/var/lib/go-creds-mgr/",
 		fileExtention: "scrt",
 	}
 	for _, o := range options {
-		o(m)
+		o(ts)
 	}
-	if err := m.initTPM(ctx); err != nil {
+	if err := ts.initTPM(ctx); err != nil {
 		return nil, err
 	}
-	return m, nil
+	if _, err := os.ReadDir(ts.storagePath); err != nil {
+		return nil, err
+	}
+	return ts, nil
 }
 
 type tpmStorage struct {
