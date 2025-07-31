@@ -7,3 +7,7 @@ import "fmt"
 func New(pass string, backend Manager) (Manager, error) {
 	return nil, fmt.Errorf("Credentials manager is only implemented for linux")
 }
+
+func getCache() (Manager, error) {
+	return nil, fmt.Errorf("Credentials manager is only implemented for linux")
+}

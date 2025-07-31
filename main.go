@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/vogtp/go-creds-mgr/pkg/creds"
@@ -18,6 +20,7 @@ type commander interface {
 }
 
 func main() {
+	defer func(t time.Time) { fmt.Printf("Duration %v\n", time.Since(t)) }(time.Now())
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
 	defer stop()
 

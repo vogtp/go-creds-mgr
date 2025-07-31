@@ -3,6 +3,7 @@ module github.com/vogtp/go-creds-mgr
 go 1.24.5
 
 require (
+	github.com/dpeckett/keyutils v0.2.1
 	github.com/hashicorp/go-kms-wrapping/v2 v2.0.18
 	github.com/salrashid123/go-tpm-wrapping v1.8.0
 	github.com/spf13/cobra v1.9.1

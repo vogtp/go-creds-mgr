@@ -16,15 +16,20 @@ import (
 
 const Simulator = "simulator"
 
-var tmpDevices = []string{"/dev/tpmrm0", "/dev/tpm0"}
+var tpmDevices = []string{"/dev/tpmrm0", "/dev/tpm0"}
 
-func (ts *tpmStorage) initTPM(ctx context.Context) error {
+func (ts *tpmStorage) initTPM(ctx context.Context, check func(context.Context, *tpmwrap.TPMWrapper) error) error {
+	if ts.tpm != nil {
+		if err := check(ctx, ts.tpm); err == nil {
+			return nil
+		}
+	}
 	ts.tpm = tpmwrap.NewWrapper()
 	if len(ts.tpmDevPaths) > 0 {
-		tmpDevices = ts.tpmDevPaths
+		tpmDevices = ts.tpmDevPaths
 	}
 	var allerr error
-	for _, t := range tmpDevices {
+	for _, t := range tpmDevices {
 		_, err := ts.tpm.SetConfig(ctx, wrapping.WithConfigMap(map[string]string{
 			tpmwrap.TPM_PATH: t,
 			// tpmwrap.PCR_VALUES: pcrValues,
@@ -34,7 +39,7 @@ func (ts *tpmStorage) initTPM(ctx context.Context) error {
 			allerr = fmt.Errorf("cannot initalise TPM: %w", err)
 			continue
 		}
-		if err := ts.checkTPM(ctx); err != nil {
+		if err := check(ctx, ts.tpm); err != nil {
 			allerr = fmt.Errorf("tpm %s not working: %w", t, err)
 			continue
 		}
@@ -43,17 +48,23 @@ func (ts *tpmStorage) initTPM(ctx context.Context) error {
 		}
 		return nil
 	}
-	return fmt.Errorf("no working tpm found in %v: %w", tmpDevices, allerr)
+	return fmt.Errorf("no working tpm found in %v: %w", tpmDevices, allerr)
 }
-func (ts *tpmStorage) checkTPM(ctx context.Context) error {
-	_, err := ts.tpm.Encrypt(ctx, []byte{0})
-	return err
-}
-func (ts *tpmStorage) encrypt(ctx context.Context, name string, secret []byte) error {
 
-	blobInfo, err := ts.tpm.Encrypt(ctx, secret)
-	if err != nil {
-		return fmt.Errorf("error encrypting %w", err)
+func (ts *tpmStorage) encrypt(ctx context.Context, name string, secret []byte) error {
+	var blobInfo *wrapping.BlobInfo
+	var err error
+
+	encrypt := func(ctx context.Context, tpm *tpmwrap.TPMWrapper) error {
+		blobInfo, err = tpm.Encrypt(ctx, secret)
+		if err != nil {
+			return fmt.Errorf("error encrypting %w", err)
+		}
+		return nil
+	}
+
+	if err := ts.initTPM(ctx, encrypt); err != nil {
+		return err
 	}
 
 	slog.Debug("Encrypted secret", "name", name, "encrypted", hex.EncodeToString(blobInfo.Ciphertext))
@@ -79,6 +90,7 @@ func (ts *tpmStorage) encrypt(ctx context.Context, name string, secret []byte) e
 }
 
 func (ts *tpmStorage) decrypt(ctx context.Context, name string) ([]byte, error) {
+
 	b, err := os.ReadFile(ts.getStorageFilename(name))
 	if err != nil {
 		return nil, fmt.Errorf("error reading encrypted file %w", err)
@@ -89,10 +101,19 @@ func (ts *tpmStorage) decrypt(ctx context.Context, name string) ([]byte, error) 
 	if err != nil {
 		return nil, fmt.Errorf("error unmarshalling %w", err)
 	}
+	var secret []byte
 
-	secret, err := ts.tpm.Decrypt(ctx, newBlobInfo)
-	if err != nil {
-		return nil, fmt.Errorf("error decrypting %w", err)
+	decrypt := func(ctx context.Context, tpm *tpmwrap.TPMWrapper) error {
+		secret, err = tpm.Decrypt(ctx, newBlobInfo)
+		if err != nil {
+			return fmt.Errorf("error decrypting %w", err)
+		}
+		return nil
 	}
+
+	if err := ts.initTPM(ctx, decrypt); err != nil {
+		return nil, err
+	}
+
 	return secret, nil
 }

@@ -23,9 +23,7 @@ func New(ctx context.Context, options ...Option) (creds.Manager, error) {
 	for _, o := range options {
 		o(ts)
 	}
-	if err := ts.initTPM(ctx); err != nil {
-		return nil, err
-	}
+
 	if _, err := os.ReadDir(ts.storagePath); err != nil {
 		return nil, err
 	}
