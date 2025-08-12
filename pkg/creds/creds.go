@@ -46,6 +46,7 @@ func (m *manager) Load(ctx context.Context, name string) ([]byte, error) {
 }
 
 func (m *manager) Store(ctx context.Context, name string, secret []byte) error {
+	secret = bytes.TrimSpace(secret)
 	if err := m.cache.Store(ctx, name, secret); err != nil {
 		slog.Warn("Could not save secret in keyutils", "name", name, "err", err)
 	}
