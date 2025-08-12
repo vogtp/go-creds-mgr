@@ -20,6 +20,7 @@ build/
 # Custom stuff
 *.db
 ignore_*
+tmp
 
 go.work*
 

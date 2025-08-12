@@ -10,6 +10,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/vogtp/go-creds-mgr/pkg/creds"
+	"github.com/vogtp/go-creds-mgr/pkg/filestorage"
 	"github.com/vogtp/go-creds-mgr/pkg/tpmstorage"
 )
 
@@ -24,15 +25,9 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
 	defer stop()
 
-	tpm, err := tpmstorage.New(ctx,
-		tpmstorage.SecretsPassword(secrets_pass),
-		tpmstorage.StorePath("./tmp"),
-		tpmstorage.TPMDevice("/dev/tpmrm0", tpmstorage.Simulator),
-	)
-	if err != nil {
-		log.Fatalf("Could not open tpm persisten storage: %s", err)
-	}
-	credsManager, err := creds.New(secrets_pass, tpm)
+	s:=getFileStorage(ctx)
+	// s:=getTpmStorage(ctx)
+	credsManager, err := creds.New(secrets_pass, s)
 	if err != nil {
 		log.Fatalf("Cannot create credential manager: %s", err)
 	}
@@ -42,4 +37,26 @@ func main() {
 			log.Fatal(err)
 		}
 	}
+}
+
+func getFileStorage(ctx context.Context) creds.Manager {
+	tpm, err := filestorage.New(ctx,
+		filestorage.SecretsPassword(secrets_pass),
+		filestorage.StorePath("./tmp"),
+	)
+	if err != nil {
+		log.Fatalf("Could not open tpm persisten storage: %s", err)
+	}
+	return tpm
+}
+func getTpmStorage(ctx context.Context) creds.Manager {
+	tpm, err := tpmstorage.New(ctx,
+		tpmstorage.SecretsPassword(secrets_pass),
+		tpmstorage.StorePath("./tmp"),
+		tpmstorage.TPMDevice("/dev/tpmrm0", tpmstorage.Simulator),
+	)
+	if err != nil {
+		log.Fatalf("Could not open tpm persisten storage: %s", err)
+	}
+	return tpm
 }
