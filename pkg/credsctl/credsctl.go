@@ -1,16 +1,15 @@
-//go:build linux
-
-package creds
+package credsctl
 
 import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"github.com/vogtp/go-creds-mgr/pkg/creds"
 	"golang.org/x/term"
 )
 
-// CobraCommand adds a cobra.Command to manage credentials
-func (m manager) CobraCommand() *cobra.Command {
+// Command adds a cobra.Command to manage credentials
+func Command(getManager func() creds.Manager) *cobra.Command {
 	credsCmd := &cobra.Command{
 		Use:          "credentials",
 		Short:        "Manage credentials",
@@ -27,7 +26,7 @@ func (m manager) CobraCommand() *cobra.Command {
 		Long:    ``,
 		Aliases: []string{"ls", "show"},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			crds, err := m.List(cmd.Context())
+			crds, err := getManager().List(cmd.Context())
 			if err != nil {
 				return err
 			}
@@ -51,7 +50,7 @@ func (m manager) CobraCommand() *cobra.Command {
 			}
 			name := args[0]
 			sec := []byte(args[1])
-			return m.Store(cmd.Context(), name, sec)
+			return getManager().Store(cmd.Context(), name, sec)
 		},
 	}
 	credsCmd.AddCommand(credsStoreCmd)
@@ -67,7 +66,7 @@ func (m manager) CobraCommand() *cobra.Command {
 				return cmd.Usage()
 			}
 			name := args[0]
-			s, err := m.Load(cmd.Context(), name)
+			s, err := getManager().Load(cmd.Context(), name)
 			if err != nil {
 				return err
 			}
@@ -81,7 +80,7 @@ func (m manager) CobraCommand() *cobra.Command {
 					return err
 				}
 			}
-			if !m.isSecretsPassword(bytePassword) {
+			if !getManager().ValidatePass(bytePassword) {
 				s = []byte("Secret not shown, password not valid")
 			}
 			fmt.Printf("%s: %q\n", name, string(s))

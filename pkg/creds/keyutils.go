@@ -47,3 +47,7 @@ func (ku *keyutilsManager) Store(_ context.Context, name string, secret []byte) 
 	slog.Info("Saved secret to keyutils", "name", name, "keyid", id)
 	return nil
 }
+
+func (keyutilsManager) ValidatePass([]byte) bool {
+	return false
+}

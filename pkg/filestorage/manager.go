@@ -68,6 +68,6 @@ func (s fileStorage) getStorageFilename(name string) string {
 	return filepath.Clean(fmt.Sprintf("%s/%s.%s", s.storagePath, name, s.fileExtention))
 }
 
-func (ts fileStorage) isSecretsPassword(s []byte) bool {
+func (ts fileStorage) ValidatePass(s []byte) bool {
 	return bytes.Equal(ts.secretsPassword, s)
 }

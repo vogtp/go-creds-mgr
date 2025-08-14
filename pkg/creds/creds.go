@@ -53,6 +53,6 @@ func (m *manager) Store(ctx context.Context, name string, secret []byte) error {
 	return m.persistent.Store(ctx, name, secret)
 }
 
-func (m manager) isSecretsPassword(s []byte) bool {
+func (m manager) ValidatePass(s []byte) bool {
 	return bytes.Equal(m.secretsPassword, s)
 }

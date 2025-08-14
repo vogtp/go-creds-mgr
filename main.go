@@ -8,34 +8,29 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/spf13/cobra"
 	"github.com/vogtp/go-creds-mgr/pkg/creds"
+	"github.com/vogtp/go-creds-mgr/pkg/credsctl"
 	"github.com/vogtp/go-creds-mgr/pkg/filestorage"
 	"github.com/vogtp/go-creds-mgr/pkg/tpmstorage"
 )
 
 var secrets_pass = "SECRETS PASSWORD"
 
-type commander interface {
-	CobraCommand() *cobra.Command
-}
-
 func main() {
 	defer func(t time.Time) { fmt.Printf("Duration %v\n", time.Since(t)) }(time.Now())
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
 	defer stop()
 
-	s:=getFileStorage(ctx)
+	s := getFileStorage(ctx)
 	// s:=getTpmStorage(ctx)
 	credsManager, err := creds.New(secrets_pass, s)
 	if err != nil {
 		log.Fatalf("Cannot create credential manager: %s", err)
 	}
-	if cmder, ok := credsManager.(commander); ok {
-		rootCtl := cmder.CobraCommand()
-		if err := rootCtl.ExecuteContext(ctx); err != nil {
-			log.Fatal(err)
-		}
+
+	rootCtl := credsctl.Command(func() creds.Manager { return credsManager })
+	if err := rootCtl.ExecuteContext(ctx); err != nil {
+		log.Fatal(err)
 	}
 }
 
